@@ -67,6 +67,31 @@ pub fn build(b: *std.Build) void {
         run_step.dependOn(&default_run.step);
     }
 
+    // Benchmark comparing justinhj/zig-msgpack with zigcc/zig-msgpack
+    const bench_step = b.step("bench", "Run MessagePack benchmarks comparing with zigcc");
+    const zigcc_dep = b.lazyDependency("zigcc_msgpack", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    if (zigcc_dep) |dep| {
+        const bench_exe = b.addExecutable(.{
+            .name = "zig-msgpack-bench",
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("bench/compare.zig"),
+                .target = target,
+                .optimize = optimize,
+                .imports = &.{
+                    .{ .name = "zig_msgpack", .module = mod },
+                    .{ .name = "zigcc_msgpack", .module = dep.module("msgpack") },
+                },
+            }),
+        });
+        const run_bench = b.addRunArtifact(bench_exe);
+        run_bench.addPassthruArgs();
+        bench_step.dependOn(&run_bench.step);
+    }
+
     // Default build step
     b.default_step.dependOn(test_step);
     b.default_step.dependOn(example_step);
