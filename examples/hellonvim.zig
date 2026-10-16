@@ -157,7 +157,7 @@ pub fn main(init: std.process.Init) !void {
         defer _ = arena.reset(.retain_capacity);
         const alloc = arena.allocator();
 
-        var p = msgpack.Packer.init(alloc);
+        var p = try msgpack.Packer.initCapacity(alloc, 256);
 
         var expr = "2 + 2".*;
         const params = [_]msgpack.MsgPackObject{
@@ -207,7 +207,7 @@ pub fn main(init: std.process.Init) !void {
         defer _ = arena.reset(.retain_capacity);
         const alloc = arena.allocator();
 
-        var p = msgpack.Packer.init(alloc);
+        var p = try msgpack.Packer.initCapacity(alloc, 256);
 
         var expr = "'Hello from Zig! Running Neovim version ' . v:version".*;
         const params = [_]msgpack.MsgPackObject{
@@ -255,7 +255,7 @@ pub fn main(init: std.process.Init) !void {
         defer _ = arena.reset(.retain_capacity);
         const alloc = arena.allocator();
 
-        var p = msgpack.Packer.init(alloc);
+        var p = try msgpack.Packer.initCapacity(alloc, 256);
 
         var cmd = "let g:zig_msgpack_greeting = 'Greetings from zig-msgpack library!'".*;
         const params = [_]msgpack.MsgPackObject{

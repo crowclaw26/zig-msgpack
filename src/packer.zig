@@ -294,6 +294,13 @@ pub const Packer = struct {
         };
     }
 
+    pub fn initCapacity(allocator: std.mem.Allocator, capacity: usize) !Packer {
+        return .{
+            .allocator = allocator,
+            .bytes = try std.ArrayList(u8).initCapacity(allocator, capacity),
+        };
+    }
+
     pub fn deinit(self: *Packer) void {
         self.bytes.deinit(self.allocator);
     }
@@ -392,7 +399,7 @@ pub fn pack(allocator: std.mem.Allocator, obj: MsgPackObject) ![]u8 {
 }
 
 // --------------------------------------------------------------------------
-// Neovim MessagePack-RPC Helpers
+// MessagePack-RPC Helpers
 // --------------------------------------------------------------------------
 
 /// Pack a MessagePack-RPC Request: [0, msgid, method, params]
@@ -438,6 +445,33 @@ pub fn packRpcNotification(writer: anytype, method: []const u8, params: []const 
 // --------------------------------------------------------------------------
 // Unit Tests: Optimal Format Verification
 // --------------------------------------------------------------------------
+
+test "packer: initCapacity preallocation and packing" {
+    const allocator = std.testing.allocator;
+    var packer = try Packer.initCapacity(allocator, 64);
+    defer packer.deinit();
+
+    try std.testing.expect(packer.bytes.capacity >= 64);
+    try std.testing.expectEqual(@as(usize, 0), packer.getSlice().len);
+
+    try packer.packNil();
+    try packer.packBool(true);
+    try packer.packInt(@as(u8, 42));
+
+    try std.testing.expectEqualSlices(u8, "\xc0\xc3\x2a", packer.getSlice());
+}
+
+test "packer: initCapacity zero and toOwnedSlice" {
+    const allocator = std.testing.allocator;
+    var packer = try Packer.initCapacity(allocator, 0);
+    defer packer.deinit();
+
+    try packer.packString("hello");
+    const slice = try packer.toOwnedSlice();
+    defer allocator.free(slice);
+
+    try std.testing.expectEqualSlices(u8, "\xa5hello", slice);
+}
 
 test "packer: nil and booleans" {
     var packer = Packer.init(std.testing.allocator);
